@@ -39,329 +39,327 @@ import static com.mapr.db.Condition.Op.LESS;
  */
 public class Ex01SimpleCRUD {
 
-    public static final String TABLE_PATH = "/apps/user_profiles";
+  public static final String TABLE_PATH = "/apps/user_profiles";
 
-    private Table table;
-
-
-    public Ex01SimpleCRUD() {
-    }
-
-    public static void main(String[] args) throws IOException, NoSuchFieldException, IllegalAccessException {
-
-        Ex01SimpleCRUD app = new Ex01SimpleCRUD();
-        app.run();
-
-    }
-
-    private void run() throws IOException {
-
-        this.deleteTable(TABLE_PATH);
-        this.table = this.getTable(TABLE_PATH);
-        this.printTableInformation(TABLE_PATH);
-
-        System.out.println("\n\n========== INSERT NEW RECORDS ==========");
-        this.createDocuments();
+  private Table table;
 
 
-        System.out.println("\n\n========== QUERIES ==========");
-        this.queryDocuments();
+  public Ex01SimpleCRUD() {
+  }
+
+  public static void main(String[] args) throws IOException, NoSuchFieldException, IllegalAccessException {
+
+    Ex01SimpleCRUD app = new Ex01SimpleCRUD();
+    app.run();
+
+  }
+
+  private void run() throws IOException {
+
+    this.deleteTable(TABLE_PATH);
+    this.table = this.getTable(TABLE_PATH);
+    this.printTableInformation(TABLE_PATH);
+
+    System.out.println("\n\n========== INSERT NEW RECORDS ==========");
+    this.createDocuments();
+
+
+    System.out.println("\n\n========== QUERIES ==========");
+    this.queryDocuments();
 //
 //
 //    System.out.println("\n\n========== UPDATE ==========");
 //    this.updateDocuments();
 
+  }
+
+  /**
+   * Get the table, create it if not present
+   *
+   * @throws IOException
+   */
+  private Table getTable(String tableName) throws IOException {
+    Table table;
+
+    if (!MapRDB.tableExists(tableName)) {
+      table = MapRDB.createTable(tableName); // Create the table if not already present
+    } else {
+      table = MapRDB.getTable(tableName); // get the table
+    }
+    return table;
+  }
+
+  private void deleteTable(String tableName) throws IOException {
+    if (MapRDB.tableExists(tableName)) {
+      MapRDB.deleteTable(tableName);
     }
 
-    /**
-     * Get the table, create it if not present
-     *
-     * @throws IOException
-     */
-    private Table getTable(String tableName) throws IOException {
-        Table table;
+  }
 
-        if (!MapRDB.tableExists(tableName)) {
-            table = MapRDB.createTable(tableName); // Create the table if not already present
-        } else {
-            table = MapRDB.getTable(tableName); // get the table
-        }
-        return table;
+  /**
+   *
+   */
+  private void createDocuments() throws IOException {
+
+    // Create a new record (simple format)
+    DBDocument record = MapRDB.newDocument()
+      .set("_id", "jdoe")
+      .set("first_name", "John")
+      .set("last_name", "Doe")
+      .set("dob", Date.valueOf("1970-06-23"));
+
+    // save record into the table
+    table.insertOrReplace(record);
+
+
+    // create a new record without _id
+    record = MapRDB.newDocument()
+      .set("first_name", "David")
+      .set("last_name", "Simon")
+      .set("dob", Date.valueOf("1980-10-13"))
+    ;
+
+    table.insert("dsimon", record);
+
+
+    // try to insert the same record ID
+    try {
+      table.insert("dsimon", record);
+    } catch (DocumentExistsException dee) {
+      System.out.println("Exception during insert : " + dee.getMessage());
     }
 
-    private void deleteTable(String tableName) throws IOException {
-        if (MapRDB.tableExists(tableName)) {
-            MapRDB.deleteTable(tableName);
-        }
 
+    // Create more complex Record
+    record = MapRDB.newDocument()
+      .set("_id", "mdupont")
+      .set("first_name", "Maxime")
+      .set("last_name", "Dupont")
+      .set("dob", Date.valueOf("1982-02-03"))
+      .set("interests", Arrays.asList("sports", "movies", "electronics"))
+      .set("address.line", "1223 Broadway")
+      .set("address.city", "San Jose")
+      .set("address.zip", 95109)
+    ;
+    table.insert(record);
+
+
+    // Another way to create sub document
+    // Create the sub document as record and use it to set the value
+    DBDocument addressRecord = MapRDB.newDocument()
+      .set("line", "100 Main Street")
+      .set("city", "San Francisco")
+      .set("zip", 94105);
+
+    record = MapRDB.newDocument()
+      .set("_id", "rsmith")
+      .set("first_name", "Robert")
+      .set("last_name", "Smith")
+      .set("dob", Date.valueOf("1982-02-03"))
+      .set("interests", Arrays.asList("electronics", "music", "sports"))
+      .set("address", addressRecord)
+    ;
+    table.insert(record);
+
+
+    table.flush(); // flush to the server
+
+
+  }
+
+  /**
+   * Update record see how to : update existing field can add/remove attribute to a document append
+   * data into lis of values
+   */
+  private void updateDocuments() throws IOException {
+
+    {
+      System.out.println("\t\tAdd address and status to jdoe");
+      System.out.println("before :\t" + table.findById("jdoe"));
+
+      // create a mutation
+      Mutation mutation = MapRDB.newMutation()
+        .set("active", true)
+        .set("address.line", "1015 15th Avenue")
+        .set("address.city", "Redwood City")
+        .set("address.zip", 94065)
+        .build();
+
+      table.update("jdoe", mutation);
+      table.flush();
+
+      System.out.println("after :\t\t" + table.findById("jdoe"));
     }
 
-    /**
-     *
-     */
-    private void createDocuments() throws IOException {
 
-        // Create a new record (simple format)
-        DBDocument record = MapRDB.newDocument()
-                .set("_id", "jdoe")
-                .set("first_name", "John")
-                .set("last_name", "Doe")
-                .set("dob", Date.valueOf("1970-06-23"));
+    {
+      System.out.println("\n\n\t\tAppend new interests to users");
 
-        // save record into the table
-        table.insertOrReplace(record);
+      // create a mutation
+      Mutation mutation = MapRDB.newMutation()
+        .append("interests", Arrays.asList("development"))
+        .build();
 
+      table.update("jdoe", mutation);
+      table.update("mdupont", mutation);
+      table.flush();
 
-        // create a new record without _id
-        record = MapRDB.newDocument()
-                .set("first_name", "David")
-                .set("last_name", "Simon")
-                .set("dob", Date.valueOf("1980-10-13"))
-        ;
-
-        table.insert("dsimon", record);
-
-
-        // try to insert the same record ID
-        try {
-            table.insert("dsimon", record);
-        } catch (DocumentExistsException dee) {
-            System.out.println("Exception during insert : " + dee.getMessage());
-        }
-
-
-        // Create more complex Record
-        record = MapRDB.newDocument()
-                .set("_id", "mdupont")
-                .set("first_name", "Maxime")
-                .set("last_name", "Dupont")
-                .set("dob", Date.valueOf("1982-02-03"))
-                .set("interests", Arrays.asList("sports", "movies", "electronics"))
-                .set("address.line", "1223 Broadway")
-                .set("address.city", "San Jose")
-                .set("address.zip", 95109)
-        ;
-        table.insert(record);
-
-
-        // Another way to create sub document
-        // Create the sub document as record and use it to set the value
-        DBDocument addressRecord = MapRDB.newDocument()
-                .set("line", "100 Main Street")
-                .set("city", "San Francisco")
-                .set("zip", 94105);
-
-        record = MapRDB.newDocument()
-                .set("_id", "rsmith")
-                .set("first_name", "Robert")
-                .set("last_name", "Smith")
-                .set("dob", Date.valueOf("1982-02-03"))
-                .set("interests", Arrays.asList("electronics", "music", "sports"))
-                .set("address", addressRecord)
-        ;
-        table.insert(record);
-
-
-        table.flush(); // flush to the server
-
-
+      System.out.println("after :\t\t" + table.findById("jdoe", "first_name", "last_name", "interests"));
+      System.out.println("after :\t\t" + table.findById("mdupont", "first_name", "last_name", "interests"));
     }
 
-    /**
-     * Update record see how to :
-     * update existing field
-     * can add/remove attribute to a document
-     * append data into lis of values
-     */
-    private void updateDocuments() throws IOException {
+    {
+      System.out.println("\n\n\t\tRemove attributes (dob)");
+      System.out.println("before :\t" + table.findById("jdoe"));
 
-        {
-            System.out.println("\t\tAdd address and status to jdoe");
-            System.out.println("before :\t" + table.findById("jdoe"));
-
-            // create a mutation
-            Mutation mutation = MapRDB.newMutation()
-                    .set("active", true)
-                    .set("address.line", "1015 15th Avenue")
-                    .set("address.city", "Redwood City")
-                    .set("address.zip", 94065)
-                    .build();
-
-            table.update("jdoe", mutation);
-            table.flush();
-
-            System.out.println("after :\t\t" + table.findById("jdoe"));
-        }
-
-
-        {
-            System.out.println("\n\n\t\tAppend new interests to users");
-
-            // create a mutation
-            Mutation mutation = MapRDB.newMutation()
-                    .append("interests", Arrays.asList("development"))
-                    .build();
-
-            table.update("jdoe", mutation);
-            table.update("mdupont", mutation);
-            table.flush();
-
-            System.out.println("after :\t\t" + table.findById("jdoe", "first_name", "last_name", "interests"));
-            System.out.println("after :\t\t" + table.findById("mdupont", "first_name", "last_name", "interests"));
-        }
-
-        {
-            System.out.println("\n\n\t\tRemove attributes (dob)");
-            System.out.println("before :\t" + table.findById("jdoe"));
-
-            // create a mutation
-            Mutation mutation = MapRDB.newMutation()
-                    .delete("dob")
-                    .build();
-            table.update("jdoe", mutation);
-            table.flush();
-            System.out.println("after :\t\t" + table.findById("jdoe"));
-
-        }
-
-
-    }
-
-    /**
-     * Query the record
-     */
-    private void queryDocuments() throws IOException {
-
-        {
-            // get a single document
-            DBDocument record = table.findById("mdupont");
-            System.out.print("Single record\n\t");
-            System.out.println(record);
-
-            //print individual fields
-            System.out.println("Id : " + record.getIdAsString() + " - first name : " + record.getString("first_name"));
-        }
-
-        {
-            // get a single document
-            DBDocument record = table.findById("mdupont", "last_name");
-            System.out.print("Single record with projection\n\t");
-            System.out.println(record);
-
-            //print individual fields
-            System.out.println("Id : " + record.getIdAsString() + " - first name : " + record.getString("first_name"));
-
-        }
-
-
-        {
-            // all record in the table
-            System.out.println("\n\nAll records");
-            DocumentStream<DBDocument> rs = table.find();
-            Iterator<DBDocument> itrs = rs.iterator();
-            DBDocument readRecord;
-            while (itrs.hasNext()) {
-                readRecord = itrs.next();
-                System.out.println("\t" + readRecord);
-            }
-        }
-
-
-        {
-            // all record in the table with projection
-            System.out.println("\n\nAll records with projection");
-
-            for (DBDocument doc : table.find("first_name", "last_name")) {
-                System.out.println("\t" + doc);
-            }
-        }
-
-
-        {
-            // find with condition
-            System.out.println("\n\nFind with condition");
-            System.out.println("\n\n");
-
-            // Condition equals a string
-            Condition condition = MapRDB.newCondition()
-                    .is("last_name", EQUAL, "Doe")
-                    .build();
-            System.out.println("\n\nCondition: " + condition);
-
-            for (DBDocument doc: table.find(condition)) {
-                System.out.println("\t" + doc);
-            }
-        }
-
-        {
-            // Condition as date range
-            Condition condition = MapRDB.newCondition()
-                    .and()
-                    .is("dob", GREATER_OR_EQUAL, Date.valueOf("1980-01-01"))
-                    .is("dob", LESS, Date.valueOf("1981-01-01"))
-                    .close()
-                    .build();
-            System.out.println("\n\nCondition: " + condition);
-            for (DBDocument doc: table.find(condition)) {
-                System.out.println("\t" + doc);
-            }
-        }
-
-
-        {
-            // Condition in sub document
-            Condition condition = MapRDB.newCondition()
-                    .is("address.zip", EQUAL, 95109)
-                    .build();
-            System.out.println("\n\nCondition: " + condition);
-            for (DBDocument doc: table.find(condition)) {
-                System.out.println("\t" + doc);
-            }
-        }
-
-
-        {
-            // Contains a specific value in an array
-            Condition condition = MapRDB.newCondition()
-                    .is("interests[]", EQUAL, "sports")
-                    .build();
-            System.out.println("\n\nCondition: " + condition);
-            String[] proj = new String[]{"first_name", "last_name", "interests"};
-            // TODO: reuse projection when http://10.250.1.5/bugzilla/show_bug.cgi?id=20114 is fixed
-            for (DBDocument doc: table.find(condition)) {
-                System.out.println("\t" + doc);
-            }
-        }
-
-        {
-            // Contains a value at a specific index
-            Condition condition = MapRDB.newCondition()
-                    .is("interests[0]", EQUAL, "sports")
-                    .build();
-            System.out.println("\n\nCondition: " + condition);
-            for (DBDocument doc : table.find(condition, "first_name", "last_name", "interests")) {
-                System.out.println("\t" + doc);
-            }
-        }
-
+      // create a mutation
+      Mutation mutation = MapRDB.newMutation()
+        .delete("dob")
+        .build();
+      table.update("jdoe", mutation);
+      table.flush();
+      System.out.println("after :\t\t" + table.findById("jdoe"));
 
     }
 
 
-    /**
-     * Print table information such as Name, Path and Tablets information (sharding)
-     *
-     * @param tableName
-     * @throws IOException
-     */
-    private void printTableInformation(String tableName) throws IOException {
-        Table table = MapRDB.getTable(tableName);
-        System.out.println("\n=============== TABLE INFO ===============");
-        System.out.println(" Table Name : " + table.getName());
-        System.out.println(" Table Path : " + table.getPath());
-        System.out.println(" Table Infos : " + Arrays.toString(table.getTabletInfos()));
-        System.out.println("==========================================\n");
+  }
+
+  /**
+   * Query the record
+   */
+  private void queryDocuments() throws IOException {
+
+    {
+      // get a single document
+      DBDocument record = table.findById("mdupont");
+      System.out.print("Single record\n\t");
+      System.out.println(record);
+
+      //print individual fields
+      System.out.println("Id : " + record.getIdAsString() + " - first name : " + record.getString("first_name"));
     }
+
+    {
+      // get a single document
+      DBDocument record = table.findById("mdupont", "last_name");
+      System.out.print("Single record with projection\n\t");
+      System.out.println(record);
+
+      //print individual fields
+      System.out.println("Id : " + record.getIdAsString() + " - first name : " + record.getString("first_name"));
+
+    }
+
+
+    {
+      // all record in the table
+      System.out.println("\n\nAll records");
+      DocumentStream<DBDocument> rs = table.find();
+      Iterator<DBDocument> itrs = rs.iterator();
+      DBDocument readRecord;
+      while (itrs.hasNext()) {
+        readRecord = itrs.next();
+        System.out.println("\t" + readRecord);
+      }
+    }
+
+
+    {
+      // all record in the table with projection
+      System.out.println("\n\nAll records with projection");
+
+      for (DBDocument doc : table.find("first_name", "last_name")) {
+        System.out.println("\t" + doc);
+      }
+    }
+
+
+    {
+      // find with condition
+      System.out.println("\n\nFind with condition");
+      System.out.println("\n\n");
+
+      // Condition equals a string
+      Condition condition = MapRDB.newCondition()
+        .is("last_name", EQUAL, "Doe")
+        .build();
+      System.out.println("\n\nCondition: " + condition);
+
+      for (DBDocument doc : table.find(condition)) {
+        System.out.println("\t" + doc);
+      }
+    }
+
+    {
+      // Condition as date range
+      Condition condition = MapRDB.newCondition()
+        .and()
+        .is("dob", GREATER_OR_EQUAL, Date.valueOf("1980-01-01"))
+        .is("dob", LESS, Date.valueOf("1981-01-01"))
+        .close()
+        .build();
+      System.out.println("\n\nCondition: " + condition);
+      for (DBDocument doc : table.find(condition)) {
+        System.out.println("\t" + doc);
+      }
+    }
+
+
+    {
+      // Condition in sub document
+      Condition condition = MapRDB.newCondition()
+        .is("address.zip", EQUAL, 95109)
+        .build();
+      System.out.println("\n\nCondition: " + condition);
+      for (DBDocument doc : table.find(condition)) {
+        System.out.println("\t" + doc);
+      }
+    }
+
+
+    {
+      // Contains a specific value in an array
+      Condition condition = MapRDB.newCondition()
+        .is("interests[]", EQUAL, "sports")
+        .build();
+      System.out.println("\n\nCondition: " + condition);
+      String[] proj = new String[]{"first_name", "last_name", "interests"};
+      // TODO: reuse projection when http://10.250.1.5/bugzilla/show_bug.cgi?id=20114 is fixed
+      for (DBDocument doc : table.find(condition)) {
+        System.out.println("\t" + doc);
+      }
+    }
+
+    {
+      // Contains a value at a specific index
+      Condition condition = MapRDB.newCondition()
+        .is("interests[0]", EQUAL, "sports")
+        .build();
+      System.out.println("\n\nCondition: " + condition);
+      for (DBDocument doc : table.find(condition, "first_name", "last_name", "interests")) {
+        System.out.println("\t" + doc);
+      }
+    }
+
+
+  }
+
+
+  /**
+   * Print table information such as Name, Path and Tablets information (sharding)
+   *
+   * @param tableName
+   * @throws IOException
+   */
+  private void printTableInformation(String tableName) throws IOException {
+    Table table = MapRDB.getTable(tableName);
+    System.out.println("\n=============== TABLE INFO ===============");
+    System.out.println(" Table Name : " + table.getName());
+    System.out.println(" Table Path : " + table.getPath());
+    System.out.println(" Table Infos : " + Arrays.toString(table.getTabletInfos()));
+    System.out.println("==========================================\n");
+  }
 
 
 }

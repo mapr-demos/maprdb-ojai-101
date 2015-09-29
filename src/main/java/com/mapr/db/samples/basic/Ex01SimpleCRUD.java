@@ -360,7 +360,6 @@ public class Ex01SimpleCRUD {
         .build();
       System.out.println("\n\nCondition: " + condition);
       String[] proj = new String[]{"first_name", "last_name", "interests"};
-      // TODO: reuse projection when http://10.250.1.5/bugzilla/show_bug.cgi?id=20114 is fixed
       for (DBDocument doc : table.find(condition)) {
         System.out.println("\t" + doc);
       }

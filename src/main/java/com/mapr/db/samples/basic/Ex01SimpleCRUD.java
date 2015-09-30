@@ -26,6 +26,7 @@ import com.mapr.db.exceptions.DocumentExistsException;
 import com.mapr.db.samples.basic.model.User;
 import org.ojai.DocumentStream;
 
+import javax.print.Doc;
 import java.io.IOException;
 import java.sql.Date;
 import java.util.Arrays;
@@ -48,14 +49,14 @@ public class Ex01SimpleCRUD {
   public Ex01SimpleCRUD() {
   }
 
-  public static void main(String[] args) throws IOException, NoSuchFieldException, IllegalAccessException {
+  public static void main(String[] args) throws Exception {
 
     Ex01SimpleCRUD app = new Ex01SimpleCRUD();
     app.run();
 
   }
 
-  private void run() throws IOException {
+  private void run() throws Exception {
 
     this.deleteTable(TABLE_PATH);
     this.table = this.getTable(TABLE_PATH);
@@ -71,6 +72,8 @@ public class Ex01SimpleCRUD {
 
     System.out.println("\n\n========== UPDATE ==========");
     this.updateDocuments();
+
+    this.table.close();
 
   }
 
@@ -244,7 +247,7 @@ public class Ex01SimpleCRUD {
   /**
    * Query the record
    */
-  private void queryDocuments() throws IOException {
+  private void queryDocuments() throws Exception {
 
     {
       // get a single document
@@ -283,6 +286,7 @@ public class Ex01SimpleCRUD {
         readRecord = itrs.next();
         System.out.println("\t" + readRecord);
       }
+      rs.close();
     }
 
 
@@ -290,8 +294,10 @@ public class Ex01SimpleCRUD {
       // all records in the table with projection
       System.out.println("\n\nAll records with projection");
 
-      for (DBDocument doc : table.find("first_name", "last_name")) {
-        System.out.println("\t" + doc);
+      try(DocumentStream<DBDocument> documentStream = table.find("first_name", "last_name")) {
+        for (DBDocument doc : documentStream ) {
+          System.out.println("\t" + doc);
+        }
       }
     }
 
@@ -301,9 +307,12 @@ public class Ex01SimpleCRUD {
       // it is interesting to see how you can ignore unknown attributes with the JSON Annotations
       System.out.println("\n\nAll records with a POJO");
 
-      for (DBDocument doc : table.find()) {
-        System.out.println("\t" + doc.toJavaBean(User.class));
+      try(DocumentStream<DBDocument> documentStream = table.find()) {
+        for (DBDocument doc : documentStream ) {
+          System.out.println("\t" + doc.toJavaBean(User.class));
+        }
       }
+
     }
 
 
@@ -317,12 +326,10 @@ public class Ex01SimpleCRUD {
         .is("last_name", EQUAL, "Doe")
         .build();
       System.out.println("\n\nCondition: " + condition);
-
-
-
-
-      for (DBDocument doc : table.find(condition)) {
-        System.out.println("\t" + doc);
+      try(DocumentStream<DBDocument> documentStream = table.find(condition)) {
+        for (DBDocument doc : documentStream ) {
+          System.out.println("\t" + doc);
+        }
       }
     }
 
@@ -335,8 +342,10 @@ public class Ex01SimpleCRUD {
         .close()
         .build();
       System.out.println("\n\nCondition: " + condition);
-      for (DBDocument doc : table.find(condition)) {
-        System.out.println("\t" + doc);
+      try(DocumentStream<DBDocument> documentStream = table.find(condition)) {
+        for (DBDocument doc : documentStream ) {
+          System.out.println("\t" + doc);
+        }
       }
     }
 
@@ -347,8 +356,10 @@ public class Ex01SimpleCRUD {
         .is("address.zip", EQUAL, 95109)
         .build();
       System.out.println("\n\nCondition: " + condition);
-      for (DBDocument doc : table.find(condition)) {
-        System.out.println("\t" + doc);
+      try(DocumentStream<DBDocument> documentStream = table.find(condition)) {
+        for (DBDocument doc : documentStream ) {
+          System.out.println("\t" + doc);
+        }
       }
     }
 
@@ -359,10 +370,10 @@ public class Ex01SimpleCRUD {
         .is("interests[]", EQUAL, "sports")
         .build();
       System.out.println("\n\nCondition: " + condition);
-      String[] proj = new String[]{"first_name", "last_name", "interests"};
-      // TODO: reuse projection when http://10.250.1.5/bugzilla/show_bug.cgi?id=20114 is fixed
-      for (DBDocument doc : table.find(condition)) {
-        System.out.println("\t" + doc);
+      try(DocumentStream<DBDocument> documentStream = table.find(condition)) {
+        for (DBDocument doc : documentStream ) {
+          System.out.println("\t" + doc);
+        }
       }
     }
 
@@ -372,8 +383,10 @@ public class Ex01SimpleCRUD {
         .is("interests[0]", EQUAL, "sports")
         .build();
       System.out.println("\n\nCondition: " + condition);
-      for (DBDocument doc : table.find(condition, "first_name", "last_name", "interests")) {
-        System.out.println("\t" + doc);
+      try(DocumentStream<DBDocument> documentStream = table.find(condition, "first_name", "last_name", "interests")) {
+        for (DBDocument doc : documentStream ) {
+          System.out.println("\t" + doc);
+        }
       }
     }
 

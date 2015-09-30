@@ -60,6 +60,9 @@ public class Ex02MapRdbAdmin {
     // use multiple CF
     createAndReadDocuments();
 
+    // close table
+    table.close();
+
   }
 
 
@@ -101,7 +104,7 @@ public class Ex02MapRdbAdmin {
 
   private void createAndReadDocuments() throws InterruptedException {
     table = MapRDB.getTable(TABLE_PATH);
-    table.setOption(Table.TableOption.BUFFERWRITE, true); // write synchronously (better naming/value see bug 20255)
+    table.setOption(Table.TableOption.BUFFERWRITE, true);
 
     Document meta = Json.newDocument()
             .set("title", "Home Page")

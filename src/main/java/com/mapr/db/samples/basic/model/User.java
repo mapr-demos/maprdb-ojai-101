@@ -2,8 +2,8 @@ package com.mapr.db.samples.basic.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import org.ojai.types.ODate;
 
-import java.sql.Date;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -13,7 +13,7 @@ public class User {
   private String id;
   private String firstName;
   private String lastName;
-  private Date dob;
+  private ODate dob;
   private List<String> interests;
 
   public User() {
@@ -46,11 +46,11 @@ public class User {
     this.lastName = lastName;
   }
 
-  public Date getDob() {
+  public ODate getDob() {
     return dob;
   }
 
-  public void setDob(Date dob) {
+  public void setDob(ODate dob) {
     this.dob = dob;
   }
 

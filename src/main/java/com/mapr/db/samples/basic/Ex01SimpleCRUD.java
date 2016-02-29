@@ -1,5 +1,5 @@
 /*
- *  Copyright 2009-2015 MapR Technologies
+ *  Copyright 2009-2016 MapR Technologies
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -17,24 +17,26 @@
 
 package com.mapr.db.samples.basic;
 
-import com.mapr.db.Condition;
 import com.mapr.db.MapRDB;
-import com.mapr.db.DBDocument;
-import com.mapr.db.Mutation;
 import com.mapr.db.Table;
-import com.mapr.db.exceptions.DocumentExistsException;
 import com.mapr.db.samples.basic.model.User;
+import org.ojai.Document;
 import org.ojai.DocumentStream;
+import org.ojai.store.DocumentMutation;
+import org.ojai.store.QueryCondition;
+import org.ojai.store.exceptions.DocumentExistsException;
+import org.ojai.types.ODate;
 
-import javax.print.Doc;
 import java.io.IOException;
 import java.sql.Date;
 import java.util.Arrays;
 import java.util.Iterator;
 
-import static com.mapr.db.Condition.Op.EQUAL;
-import static com.mapr.db.Condition.Op.GREATER_OR_EQUAL;
-import static com.mapr.db.Condition.Op.LESS;
+import static org.ojai.store.QueryCondition.Op.EQUAL;
+import static org.ojai.store.QueryCondition.Op.GREATER_OR_EQUAL;
+import static org.ojai.store.QueryCondition.Op.LESS;
+
+
 
 /**
  * This class shows the basic operations of Argonaut
@@ -106,11 +108,11 @@ public class Ex01SimpleCRUD {
   private void createDocuments() throws IOException {
 
     // Create a new document (simple format)
-    DBDocument document = MapRDB.newDocument()
+    Document document = MapRDB.newDocument()
       .set("_id", "jdoe")
       .set("first_name", "John")
       .set("last_name", "Doe")
-      .set("dob", Date.valueOf("1970-06-23"));
+      .set("dob", ODate.parse("1970-06-23"));
 
     // save document into the table
     table.insertOrReplace(document);
@@ -120,7 +122,7 @@ public class Ex01SimpleCRUD {
     document = MapRDB.newDocument()
       .set("first_name", "David")
       .set("last_name", "Simon")
-      .set("dob", Date.valueOf("1980-10-13"))
+      .set("dob", ODate.parse("1980-10-13"))
     ;
 
     table.insert("dsimon", document);
@@ -132,7 +134,7 @@ public class Ex01SimpleCRUD {
     user.setId("alehmann");
     user.setFirstName("Andrew");
     user.setLastName("Lehmann");
-    user.setDob(Date.valueOf("1980-10-13"));
+    user.setDob(ODate.parse("1980-10-13"));
     user.addInterest("html");
     user.addInterest("css");
     user.addInterest("js");
@@ -145,8 +147,9 @@ public class Ex01SimpleCRUD {
     try {
       table.insert("dsimon", document);
     } catch (DocumentExistsException dee) {
-      System.out.println("Exception during insert : " + dee.getMessage());
+      System.out.println("Document with key dsimon already exists");
     }
+
 
 
     // Create more complex Record
@@ -154,7 +157,7 @@ public class Ex01SimpleCRUD {
       .set("_id", "mdupont")
       .set("first_name", "Maxime")
       .set("last_name", "Dupont")
-      .set("dob", Date.valueOf("1982-02-03"))
+      .set("dob", ODate.parse("1982-02-03"))
       .set("interests", Arrays.asList("sports", "movies", "electronics"))
       .set("address.line", "1223 Broadway")
       .set("address.city", "San Jose")
@@ -165,7 +168,7 @@ public class Ex01SimpleCRUD {
 
     // Another way to create sub document
     // Create the sub document as document and use it to set the value
-    DBDocument addressRecord = MapRDB.newDocument()
+    Document addressRecord = MapRDB.newDocument()
       .set("line", "100 Main Street")
       .set("city", "San Francisco")
       .set("zip", 94105);
@@ -174,7 +177,7 @@ public class Ex01SimpleCRUD {
       .set("_id", "rsmith")
       .set("first_name", "Robert")
       .set("last_name", "Smith")
-      .set("dob", Date.valueOf("1982-02-03"))
+      .set("dob", ODate.parse("1982-02-03"))
       .set("interests", Arrays.asList("electronics", "music", "sports"))
       .set("address", addressRecord)
     ;
@@ -197,12 +200,11 @@ public class Ex01SimpleCRUD {
       System.out.println("before :\t" + table.findById("jdoe"));
 
       // create a mutation
-      Mutation mutation = MapRDB.newMutation()
+      DocumentMutation mutation = MapRDB.newMutation()
         .set("active", true)
         .set("address.line", "1015 15th Avenue")
         .set("address.city", "Redwood City")
-        .set("address.zip", 94065)
-        .build();
+        .set("address.zip", 94065);
 
       table.update("jdoe", mutation);
       table.flush();
@@ -215,9 +217,8 @@ public class Ex01SimpleCRUD {
       System.out.println("\n\n\t\tAppend new interests to users");
 
       // create a mutation
-      Mutation mutation = MapRDB.newMutation()
-        .append("interests", Arrays.asList("development"))
-        .build();
+      DocumentMutation mutation = MapRDB.newMutation()
+        .append("interests", Arrays.asList("development"));
 
       table.update("jdoe", mutation);
       table.update("mdupont", mutation);
@@ -232,9 +233,9 @@ public class Ex01SimpleCRUD {
       System.out.println("before :\t" + table.findById("jdoe"));
 
       // create a mutation
-      Mutation mutation = MapRDB.newMutation()
-        .delete("dob")
-        .build();
+      DocumentMutation mutation = MapRDB.newMutation()
+        .delete("dob");
+
       table.update("jdoe", mutation);
       table.flush();
       System.out.println("after :\t\t" + table.findById("jdoe"));
@@ -251,7 +252,7 @@ public class Ex01SimpleCRUD {
 
     {
       // get a single document
-      DBDocument record = table.findById("mdupont");
+      Document record = table.findById("mdupont");
       System.out.print("Single record\n\t");
       System.out.println(record);
 
@@ -261,7 +262,7 @@ public class Ex01SimpleCRUD {
 
     {
       // get a single document
-      DBDocument record = table.findById("mdupont", "last_name");
+      Document record = table.findById("mdupont", "last_name");
       System.out.print("Single record with projection\n\t");
       System.out.println(record);
 
@@ -279,9 +280,9 @@ public class Ex01SimpleCRUD {
     {
       // all recordss in the table
       System.out.println("\n\nAll records");
-      DocumentStream<DBDocument> rs = table.find();
-      Iterator<DBDocument> itrs = rs.iterator();
-      DBDocument readRecord;
+      DocumentStream rs = table.find();
+      Iterator<Document> itrs = rs.iterator();
+      Document readRecord;
       while (itrs.hasNext()) {
         readRecord = itrs.next();
         System.out.println("\t" + readRecord);
@@ -294,8 +295,8 @@ public class Ex01SimpleCRUD {
       // all records in the table with projection
       System.out.println("\n\nAll records with projection");
 
-      try(DocumentStream<DBDocument> documentStream = table.find("first_name", "last_name")) {
-        for (DBDocument doc : documentStream ) {
+      try(DocumentStream documentStream = table.find("first_name", "last_name")) {
+        for (Document doc : documentStream ) {
           System.out.println("\t" + doc);
         }
       }
@@ -307,8 +308,8 @@ public class Ex01SimpleCRUD {
       // it is interesting to see how you can ignore unknown attributes with the JSON Annotations
       System.out.println("\n\nAll records with a POJO");
 
-      try(DocumentStream<DBDocument> documentStream = table.find()) {
-        for (DBDocument doc : documentStream ) {
+      try(DocumentStream documentStream = table.find()) {
+        for (Document doc : documentStream ) {
           System.out.println("\t" + doc.toJavaBean(User.class));
         }
       }
@@ -322,12 +323,12 @@ public class Ex01SimpleCRUD {
       System.out.println("\n\n");
 
       // Condition equals a string
-      Condition condition = MapRDB.newCondition()
-        .is("last_name", EQUAL, "Doe")
+      QueryCondition condition = MapRDB.newCondition()
+        .is("last_name", QueryCondition.Op.EQUAL, "Doe")
         .build();
       System.out.println("\n\nCondition: " + condition);
-      try(DocumentStream<DBDocument> documentStream = table.find(condition)) {
-        for (DBDocument doc : documentStream ) {
+      try(DocumentStream documentStream = table.find(condition)) {
+        for (Document doc : documentStream ) {
           System.out.println("\t" + doc);
         }
       }
@@ -335,15 +336,15 @@ public class Ex01SimpleCRUD {
 
     {
       // Condition as date range
-      Condition condition = MapRDB.newCondition()
+      QueryCondition condition = MapRDB.newCondition()
         .and()
-        .is("dob", GREATER_OR_EQUAL, Date.valueOf("1980-01-01"))
-        .is("dob", LESS, Date.valueOf("1981-01-01"))
+        .is("dob", GREATER_OR_EQUAL, ODate.parse("1980-01-01"))
+        .is("dob", LESS, ODate.parse("1981-01-01"))
         .close()
         .build();
       System.out.println("\n\nCondition: " + condition);
-      try(DocumentStream<DBDocument> documentStream = table.find(condition)) {
-        for (DBDocument doc : documentStream ) {
+      try(DocumentStream documentStream = table.find(condition)) {
+        for (Document doc : documentStream ) {
           System.out.println("\t" + doc);
         }
       }
@@ -352,12 +353,12 @@ public class Ex01SimpleCRUD {
 
     {
       // Condition in sub document
-      Condition condition = MapRDB.newCondition()
+      QueryCondition condition = MapRDB.newCondition()
         .is("address.zip", EQUAL, 95109)
         .build();
       System.out.println("\n\nCondition: " + condition);
-      try(DocumentStream<DBDocument> documentStream = table.find(condition)) {
-        for (DBDocument doc : documentStream ) {
+      try(DocumentStream documentStream = table.find(condition)) {
+        for (Document doc : documentStream ) {
           System.out.println("\t" + doc);
         }
       }
@@ -366,12 +367,12 @@ public class Ex01SimpleCRUD {
 
     {
       // Contains a specific value in an array
-      Condition condition = MapRDB.newCondition()
-        .is("interests[]", EQUAL, "sports")
-        .build();
+      QueryCondition condition = MapRDB.newCondition()
+        .is("interests[]", EQUAL, "sports");
+
       System.out.println("\n\nCondition: " + condition);
-      try(DocumentStream<DBDocument> documentStream = table.find(condition)) {
-        for (DBDocument doc : documentStream ) {
+      try(DocumentStream documentStream = table.find(condition)) {
+        for (Document doc : documentStream ) {
           System.out.println("\t" + doc);
         }
       }
@@ -379,12 +380,12 @@ public class Ex01SimpleCRUD {
 
     {
       // Contains a value at a specific index
-      Condition condition = MapRDB.newCondition()
+      QueryCondition condition = MapRDB.newCondition()
         .is("interests[0]", EQUAL, "sports")
         .build();
       System.out.println("\n\nCondition: " + condition);
-      try(DocumentStream<DBDocument> documentStream = table.find(condition, "first_name", "last_name", "interests")) {
-        for (DBDocument doc : documentStream ) {
+      try(DocumentStream documentStream = table.find(condition, "first_name", "last_name", "interests")) {
+        for (Document doc : documentStream ) {
           System.out.println("\t" + doc);
         }
       }

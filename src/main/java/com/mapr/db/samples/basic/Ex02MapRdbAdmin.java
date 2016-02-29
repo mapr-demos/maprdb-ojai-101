@@ -1,5 +1,5 @@
 /*
- *  Copyright 2009-2015 MapR Technologies
+ *  Copyright 2009-2016 MapR Technologies
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -18,18 +18,17 @@
 package com.mapr.db.samples.basic;
 
 import com.mapr.db.Admin;
-import com.mapr.db.DBDocument;
 import com.mapr.db.FamilyDescriptor;
 import com.mapr.db.MapRDB;
-import com.mapr.db.Mutation;
 import com.mapr.db.Table;
 import com.mapr.db.TableDescriptor;
 import org.ojai.Document;
 import org.ojai.json.Json;
+import org.ojai.store.DocumentMutation;
+import org.ojai.types.ODate;
+import org.ojai.types.OTimestamp;
 
 import java.io.IOException;
-import java.sql.Date;
-import java.sql.Timestamp;
 import java.util.Arrays;
 
 /**
@@ -108,7 +107,7 @@ public class Ex02MapRdbAdmin {
 
     Document meta = Json.newDocument()
             .set("title", "Home Page")
-            .set("created_at", Date.valueOf("2015-08-15"));
+            .set("created_at", ODate.parse("2015-08-15"));
 
     Document doc = MapRDB.newDocument()
             .set("_id", "index.html")
@@ -155,12 +154,13 @@ public class Ex02MapRdbAdmin {
     // add clicks to the document
     Document clickDetail = Json.newDocument()
             .set("ip", "54.54.54.54")
-            .set("at",  new Timestamp( new java.util.Date().getTime()));
-    Mutation mutation = MapRDB.newMutation()
+            .set("at", new OTimestamp(new java.util.Date()));
+
+    DocumentMutation mutation = MapRDB.newMutation()
             .increment("nb_of_clicks", 1)
             .append("X", "X")
-            .append("clicks", Arrays.asList(clickDetail))
-            .build();
+            .append("clicks", Arrays.asList(clickDetail));
+
     table.update("index.html", mutation);
   }
 
@@ -170,7 +170,7 @@ public class Ex02MapRdbAdmin {
    * @param complete if true print all the informations and individual clicks
    */
   private void printClickInfos(String page, boolean complete) {
-    DBDocument document = null;
+    Document document = null;
     if (!complete) {
       document = table.findById(page, "_id", "meta", "nb_of_clicks");
     } else {

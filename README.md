@@ -7,7 +7,7 @@ This project contains examples of OJAI, the JSON API For MapR-DB.
 
 * Java SDK 7 or newer
 * Maven 3
-* MapR-DB JSON Developer Preview VM
+* MapR 5.1 Cluster or Sandbox
 
 In your MapR-DB environment change the permissions of the `apps` folder
 

@@ -28,7 +28,6 @@ import org.ojai.store.exceptions.DocumentExistsException;
 import org.ojai.types.ODate;
 
 import java.io.IOException;
-import java.sql.Date;
 import java.util.Arrays;
 import java.util.Iterator;
 
@@ -218,7 +217,8 @@ public class Ex01SimpleCRUD {
 
       // create a mutation
       DocumentMutation mutation = MapRDB.newMutation()
-        .append("interests", Arrays.asList("development"));
+        .append("interests", Collections.singletonList("development"));
+
 
       table.update("jdoe", mutation);
       table.update("mdupont", mutation);
@@ -398,8 +398,8 @@ public class Ex01SimpleCRUD {
   /**
    * Print table information such as Name, Path and Tablets information (sharding)
    *
-   * @param tableName
-   * @throws IOException
+   * @param tableName    The table to describe
+   * @throws IOException If anything goes wrong accessing the table
    */
   private void printTableInformation(String tableName) throws IOException {
     Table table = MapRDB.getTable(tableName);

@@ -39,7 +39,7 @@ import static org.ojai.store.QueryCondition.Op.LESS;
 
 
 /**
- * This class shows the basic operations of Argonaut
+ * This class shows the basic operations of MapR DB
  */
 public class Ex01SimpleCRUD {
 

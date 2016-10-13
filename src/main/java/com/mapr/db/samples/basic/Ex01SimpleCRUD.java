@@ -29,6 +29,7 @@ import org.ojai.types.ODate;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Iterator;
 
 import static org.ojai.store.QueryCondition.Op.EQUAL;

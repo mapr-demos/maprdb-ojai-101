@@ -20,6 +20,9 @@ package com.mapr.db.samples.basic;
 import com.mapr.db.MapRDB;
 import com.mapr.db.Table;
 import com.mapr.db.samples.basic.model.User;
+import org.apache.log4j.BasicConfigurator;
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
 import org.ojai.Document;
 import org.ojai.DocumentStream;
 import org.ojai.store.DocumentMutation;
@@ -52,10 +55,10 @@ public class Ex01SimpleCRUD {
   }
 
   public static void main(String[] args) throws Exception {
-
+    BasicConfigurator.configure();
+    Logger.getRootLogger().setLevel(Level.TRACE);
     Ex01SimpleCRUD app = new Ex01SimpleCRUD();
     app.run();
-
   }
 
   private void run() throws Exception {

@@ -31,6 +31,7 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Iterator;
+import java.util.Collections;
 
 import static org.ojai.store.QueryCondition.Op.EQUAL;
 import static org.ojai.store.QueryCondition.Op.GREATER_OR_EQUAL;
